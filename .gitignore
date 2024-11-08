@@ -364,3 +364,5 @@ FodyWeavers.xsd
 /CosmosDB-Simple-API/appsettings.json
 /ProducerAPI/appsettings.Development.json
 /ProducerAPI/appsettings.json
+/ConsumerAPI/appsettings.Development.json
+/ConsumerAPI/appsettings.json

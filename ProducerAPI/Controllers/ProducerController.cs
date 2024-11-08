@@ -14,11 +14,22 @@ namespace ProducerAPI.Controllers
             _producerService = producerService;
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Post([FromBody] string message)
+        public class MessageRequest
         {
-            await _producerService.ProduceAsync("topic1", message);
-            return Ok("Message sent successfuly.");
+            public string Message { get; set; }
         }
+
+        [HttpPost]
+        public async Task<IActionResult> Post([FromBody] MessageRequest request)
+        {
+            if (string.IsNullOrEmpty(request.Message))
+            {
+                return BadRequest("Message cannot be empty.");
+            }
+
+            await _producerService.ProduceAsync("topic1", request.Message);
+            return Ok("Message sent successfully.");
+        }
+
     }
 }
