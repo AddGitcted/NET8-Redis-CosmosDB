@@ -1,9 +1,12 @@
+using Confluent.Kafka;
 using CosmosDB_Simple_API.Repositories;
+using CosmosDB_Simple_API.Services;
 using Microsoft.Azure.Cosmos;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
 
 var cosmosDbConfig = builder.Configuration.GetSection("CosmosDb");
 string account = cosmosDbConfig["Account"];
@@ -16,6 +19,16 @@ CosmosClient cosmosClient = new CosmosClient(account, key);
 Database database = await cosmosClient.CreateDatabaseIfNotExistsAsync(databaseName);
 await database.CreateContainerIfNotExistsAsync(containerName, "/id");
 
+var consumerConfig = new ConsumerConfig
+{
+    BootstrapServers = builder.Configuration.GetValue<string>("Kafka:BootstrapServers"),
+    GroupId = builder.Configuration.GetValue<string>("Kafka:GroupId"),
+    AutoOffsetReset = AutoOffsetReset.Earliest
+};
+
+builder.Services.AddHostedService<KafkaConsumerHostedService>();
+
+// Add services to the container.
 builder.Services.AddSingleton(cosmosClient);
 builder.Services.AddSingleton<ITaskRepository>(new TaskRepository(cosmosClient, databaseName, containerName));
 builder.Services.AddControllers();

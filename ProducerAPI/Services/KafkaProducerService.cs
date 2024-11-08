@@ -2,7 +2,7 @@
 
 namespace ProducerAPI.Services
 {
-    public class KafkaProducerService
+    public class KafkaProducerService : IKafkaProducerService
     {
         private readonly IProducer<Null, string> _producer;
 
