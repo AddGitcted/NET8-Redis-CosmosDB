@@ -18,6 +18,10 @@ namespace ProducerAPI.Controllers
         {
             public string Message { get; set; }
         }
+        public class BatchMessageRequest
+        {
+            public int Count { get; set; }
+        }
 
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] MessageRequest request)
@@ -31,5 +35,22 @@ namespace ProducerAPI.Controllers
             return Ok("Message sent successfully.");
         }
 
+
+        [HttpPost("batch")]
+        public async Task<IActionResult> PostBatch([FromBody] BatchMessageRequest request)
+        {
+            if (request.Count <= 0)
+            {
+                return BadRequest("Count must be greater than zero.");
+            }
+
+            for (int i = 1; i <= request.Count; i++)
+            {
+                string message = $"Message generated n°{i}";
+                await _producerService.ProduceAsync("topic1", message);
+            }
+
+            return Ok($"{request.Count} messages sent successfully.");
+        }
     }
 }
