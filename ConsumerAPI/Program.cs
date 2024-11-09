@@ -1,35 +1,47 @@
 using Confluent.Kafka;
 using CosmosDB_Simple_API.Repositories;
 using CosmosDB_Simple_API.Services;
+using Microsoft.Azure.Cosmos;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
+var cosmosDbConfig = builder.Configuration.GetSection("CosmosDb");
+string cosmosEndpoint = cosmosDbConfig["Endpoint"];
+string cosmosKey = cosmosDbConfig["Key"];
+string databaseName = cosmosDbConfig["DatabaseName"];
+string containerName = cosmosDbConfig["ContainerName"];
 
-// var cosmosDbConfig = builder.Configuration.GetSection("CosmosDb");
-// string account = cosmosDbConfig["Account"];
-// string key = cosmosDbConfig["Key"];
-// string databaseName = cosmosDbConfig["DatabaseName"];
-// string containerName = cosmosDbConfig["ContainerName"];
-// Console.WriteLine($"CosmosDb Account endpoint: {account}");
+Console.WriteLine($"CosmosDB Endpoint: {cosmosEndpoint}");
 
-// CosmosClient cosmosClient = new CosmosClient(account, key);
+CosmosClientOptions options = new()
+{
+    HttpClientFactory = () => new HttpClient(new HttpClientHandler()
+    {
+        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+    }),
+    ConnectionMode = ConnectionMode.Gateway,
+};
 
-// Database database = await cosmosClient.CreateDatabaseIfNotExistsAsync(databaseName);
-// await database.CreateContainerIfNotExistsAsync(containerName, "/id");
+CosmosClient cosmosClient = new CosmosClient(cosmosEndpoint, cosmosKey, options);
+
+Database database = await cosmosClient.CreateDatabaseIfNotExistsAsync(databaseName);
+await database.CreateContainerIfNotExistsAsync(containerName, "/id");
 
 var consumerConfig = new ConsumerConfig
 {
     BootstrapServers = builder.Configuration.GetValue<string>("Kafka:BootstrapServers"),
     GroupId = builder.Configuration.GetValue<string>("Kafka:GroupId"),
-    AutoOffsetReset = AutoOffsetReset.Earliest
+    AutoOffsetReset = AutoOffsetReset.Earliest,
+    EnableAutoCommit = true
 };
 
+
 builder.Services.AddSingleton(consumerConfig);
-//builder.Services.AddSingleton<ITaskRepository>(new TaskRepository(databaseName, containerName));
-builder.Services.AddSingleton<ITaskRepository, MockTaskRepository>();
+builder.Services.AddSingleton<ITaskRepository>(new TaskRepository(cosmosClient, databaseName, containerName));
+//builder.Services.AddSingleton<ITaskRepository, MockTaskRepository>();
 builder.Services.AddSingleton<IKafkaConsumerService, KafkaConsumerService>();
 builder.Services.AddHostedService<KafkaConsumerHostedService>();
 builder.Services.AddControllers();

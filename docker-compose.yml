@@ -1,6 +1,25 @@
 version: '3.8'
 
 services:
+  cosmosdb-emulator:
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+    container_name: cosmosdb-emulator
+    environment:
+      AZURE_COSMOS_EMULATOR_PARTITION_COUNT: 3
+      AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: "true"
+    ports:
+      - "8081:8081"
+      - "10250:10250"
+    networks:
+      - kafka-network
+    volumes:
+      - cosmosdbdata:/var/lib/cosmosdb
+    healthcheck:
+      test: ["CMD", "curl", "-f", "https://localhost:8081/_explorer/emulator.pem"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     container_name: zookeeper
@@ -55,6 +74,7 @@ services:
       - "6000:6000"
     depends_on:
       - kafka
+      - cosmosdb-emulator
     environment:
       ASPNETCORE_URLS: http://+:6000
       Kafka__BootstrapServers: kafka-broker:9092
@@ -66,3 +86,6 @@ services:
 networks:
   kafka-network:
     driver: bridge
+
+volumes:
+  cosmosdbdata:
