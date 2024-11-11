@@ -17,9 +17,18 @@ namespace CosmosDB_Simple_API.Repositories
             await _container.CreateItemAsync(task, new PartitionKey(task.Id));
         }
 
-        public async Task DeleteTaskAsync(string id)
+        public async Task<bool> DeleteTaskAsync(string id)
         {
-            await _container.DeleteItemAsync<TaskItem>(id, new PartitionKey(id));
+            var container = _container;
+            try
+            {
+                await container.DeleteItemAsync<TaskItem>(id, new PartitionKey(id));
+                return true;
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return false;
+            }
         }
 
         public async Task<TaskItem?> GetTaskAsync(string id)
@@ -46,10 +55,18 @@ namespace CosmosDB_Simple_API.Repositories
             }
             return results;
         }
-
-        public async Task UpdateTaskAsync(string id, TaskItem task)
+        public async Task<bool> UpdateTaskAsync(string id, TaskItem task)
         {
-            await _container.UpsertItemAsync(task, new PartitionKey(id));
+            var container = _container;
+            try
+            {
+                await container.ReplaceItemAsync(task, id, new PartitionKey(id));
+                return true;
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return false;
+            }
         }
     }
 }

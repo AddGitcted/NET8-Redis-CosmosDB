@@ -9,7 +9,7 @@ namespace CosmosDB_Simple_API.Repositories
         Task<IEnumerable<TaskItem>> GetTasksAsync();
         Task<TaskItem> GetTaskAsync(string id);
         Task AddTaskAsync(TaskItem task);
-        Task UpdateTaskAsync(string id, TaskItem task);
-        Task DeleteTaskAsync(string id);
+        Task<bool> UpdateTaskAsync(string id, TaskItem task);
+        Task<bool> DeleteTaskAsync(string id);
     }
 }
